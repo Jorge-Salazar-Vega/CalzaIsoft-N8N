@@ -11,7 +11,7 @@ Proyecto B (Soporte de una tienda en línea). Agente de IA en Telegram construid
 |---|---|---|
 | Jorge Silvano Salazar Vega | 24040040 | Workflow de ingesta, tool de RAG_Politicas, configuracion de memoria |
 | Abisaid Guadalupe Angulo Munguia | 24040115 | Configuracion de AiAgent, tool consultar_Estado, Pruebas |
-| Edgar Gael Reyez Quevedo | 24040158 | Configuracion de BD en supabase, tool ticket_Escalado, pruebas |
+| Edgar Gael Reyes Quevedo | 24040158 | Configuracion de BD en supabase, tool ticket_Escalado, pruebas |
 
 
 ---
