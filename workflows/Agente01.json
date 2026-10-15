@@ -1,0 +1,325 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "modelName": "models/gemini-embedding-2"
+      },
+      "type": "@n8n/n8n-nodes-langchain.embeddingsGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        176,
+        544
+      ],
+      "id": "7ecbda23-f101-4c4d-85e4-59df32fd6ad3",
+      "name": "Embeddings Google Gemini",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "43Kb7Cch1jq4dWBc",
+          "name": "Google Gemini(PaLM) Api account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "retrieve-as-tool",
+        "toolDescription": "Consulta las políticas de la zapatería CalzzaIsoft: envíos, devoluciones y cambios de talla,\ngarantía, guía de tallas, horarios y contacto. Úsala siempre que el cliente pregunte por reglas,\nplazos, costos o condiciones. Recibe la pregunta del cliente en lenguaje natural.",
+        "tableName": {
+          "__rl": true,
+          "value": "policy_documents",
+          "mode": "list",
+          "cachedResultName": "policy_documents"
+        },
+        "options": {
+          "queryName": "match_policy_documents"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreSupabase",
+      "typeVersion": 1.3,
+      "position": [
+        112,
+        384
+      ],
+      "id": "21f98a72-3fbd-40f7-88dd-e5055002b928",
+      "name": "Rag Politicas",
+      "credentials": {
+        "supabaseApi": {
+          "id": "1uzR77TVqdSrBzRe",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -496,
+        112
+      ],
+      "id": "0cdc7b5b-6a82-4fb9-a53e-3424bae928ac",
+      "name": "Telegram Trigger",
+      "webhookId": "124a8084-d08a-4c7d-873c-feae02cfaddd",
+      "credentials": {
+        "telegramApi": {
+          "id": "bTstQ2WbKLW0XWws",
+          "name": "Telegram account 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.message.text }}",
+        "options": {
+          "systemMessage": "=Eres el asistente de soporte al cliente de CalzaIsoft en Telegram. Tu objetivo es resolver dudas de envíos, políticas, devoluciones y estado de pedidos de manera amable, clara y eficiente.\n\nTienes a tu disposición las siguientes herramientas:\n\n1. consultar_estado_pedido: Úsala cuando el cliente pregunte por el estado o detalles de una compra o pedido. Solo necesitas enviar el número de pedido (ejemplo: 1047) en la propiedad `p_order_id`.\n\n2. buscar_politicas_rag: Úsala para responder preguntas sobre políticas de devoluciones, garantías, métodos de pago, tiempos de envío y preguntas frecuentes.\n\n3. crear_ticket_escalacion:\nÚsala ÚNICAMENTE cuando se requiera escalar el caso a un asesor humano.\nREGLA OBLIGATORIA: Antes de invocar esta herramienta, DEBES solicitar amablemente al cliente los siguientes 3 datos si aún no los ha proporcionado:\nSu correo electrónico (customer_email).\nSu ID de cliente / ID de usuario (customer_id).\nEl ID o modelo del producto relacionado (product_id).\nSi falta cualquiera de estos datos, NO ejecutes la herramienta; contéstale pidiendo la información necesaria para poder generar el ticket de soporte.\n\nREGLAS DE RESPUESTA:\n- Responde siempre en un tono amable, profesional y conciso.\n- Cuando utilices la información devuelta por consultar_estado_pedido, desglosa los detalles claramente para el usuario (estado actual, productos, total y fecha estimada si aplica).\n- Si la herramienta 'consultar_estado_pedido' te indica que el pedido no existe o no fue encontrado, NO inventes datos. Responde estrictamente al cliente que no pudiste localizar su pedido en el sistema y pídele que verifique el número.\n- LÍMITE DE TEMA: Eres un asistente exclusivo de una zapatería. TIENES ESTRICTAMENTE PROHIBIDO responder preguntas sobre temas ajenos a CalzaIsoft (ej. recetas de cocina, clima, programación, etc.). Si el cliente pregunta algo fuera de tema, responde amablemente que solo puedes ayudar con productos, pedidos o políticas de la tienda.\n- CERO INVENTOS: Si la herramienta 'consultar_estado_pedido' no encuentra el pedido o devuelve un error, NO inventes datos. Dile al cliente que no pudiste localizar su pedido y pídele que verifique el número."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [
+        -144,
+        112
+      ],
+      "id": "9e6b7c3c-5b3a-4ead-a5b6-a124544f54f5",
+      "name": "AI Agent (Gemini)1"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
+        "text": "={{ $('AI Agent (Gemini)1').item.json.output }}",
+        "additionalFields": {
+          "parse_mode": "HTML"
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        320,
+        112
+      ],
+      "id": "f56e9b8c-003e-459c-ba7f-0cfbe4158d88",
+      "name": "Responder en Telegram1",
+      "webhookId": "c19c5c42-000c-445f-9c68-0907bdaf2460",
+      "credentials": {
+        "telegramApi": {
+          "id": "bTstQ2WbKLW0XWws",
+          "name": "Telegram account 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "description": "Úsala para consultar el estado de un pedido enviando el id del pedido.",
+        "jsCode": "// Configuración de credenciales\nconst SUPABASE_KEY = 'sb_publishable_dEHZ_X4yFDXpBrblKoSGiw_hKGwva6I';\n\n// Extrae el ID sin importar la estructura de la IA\nlet rawId = query;\nlet email = null;\n\nif (typeof query === 'object' && query !== null) {\n  rawId = query.p_order_id || query.pedido_id || query.query;\n  email = query.p_email || query.email || null;\n}\n\nif (!rawId) {\n  return \"Error: No se proporcionó el ID del pedido.\";\n}\n\nconst cleanId = String(rawId).replace(/\\D/g, '');\nconst orderId = parseInt(cleanId, 10);\n\nif (isNaN(orderId)) {\n  return `Error: No se pudo interpretar '${rawId}' como un ID numérico de pedido.`;\n}\n\nconst payload = { p_order_id: orderId };\nif (email) {\n  payload.p_email = email;\n}\n\ntry {\n  const response = await this.helpers.httpRequest({\n    method: 'POST',\n    url: 'https://nhfxwitnomvtlzcyrfca.supabase.co/rest/v1/rpc/get_order_status',\n    headers: {\n      'apikey': SUPABASE_KEY,\n      'Authorization': `Bearer ${SUPABASE_KEY}`,\n      'Content-Type': 'application/json'\n    },\n    body: payload,\n    json: true\n  });\n\n  // --- NUEVA VALIDACIÓN ---\n  // Si la BD devuelve nulo, indefinido, un arreglo vacío o un error\n  if (!response || response.length === 0 || (Array.isArray(response) && response.length === 0) || response.error || Object.keys(response).length === 0) {\n      return \"RESULTADO: No se encontró ningún pedido con este ID en la base de datos. Dile al cliente amablemente que el número de pedido no existe o es incorrecto, y pídele que lo verifique.\";\n  }\n\n  return JSON.stringify(response);\n} catch (error) {\n  return `Error al consultar la base de datos: ${error.message}`;\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolCode",
+      "typeVersion": 1.3,
+      "position": [
+        0,
+        512
+      ],
+      "id": "20e2aea7-594d-473d-ab7f-699a68342e19",
+      "name": "Consultar_Estado_Pedido1"
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $json.message.chat.id }}",
+        "contextWindowLength": 10
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.4,
+      "position": [
+        -112,
+        368
+      ],
+      "id": "f0b7e88c-722d-416a-900f-3f9411f70c31",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Crea un ticket de soporte cuando el cliente pide hablar con una persona, reporta un producto dañado o no puedes resolver su problema. REQUISITO OBLIGATORIO: Pide al cliente su customer_id, product_id y customer_email antes de usar esta herramienta.",
+        "tableId": "tickets",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "subject",
+              "fieldValue": "={{ $fromAI('subject', 'Asunto corto del ticket, ej. Solicitud de atención por asesor', 'string') }}"
+            },
+            {
+              "fieldId": "description",
+              "fieldValue": "={{ $fromAI('description', 'Detalle del problema que reporta el cliente', 'string') }}"
+            },
+            {
+              "fieldId": "category",
+              "fieldValue": "= {{ $fromAI('category', 'producto_danado, pedido_perdido, pide_humano, problema_pago u otro', 'string') }}"
+            },
+            {
+              "fieldId": "escalation_reason",
+              "fieldValue": "= {{ $fromAI('escalation_reason', 'Por qué se escala a un humano', 'string') }}"
+            },
+            {
+              "fieldId": "priority",
+              "fieldValue": "={{ String($fromAI('priority', 'Prioridad del problema: baja, media o alta', 'string', 'media')).trim().toLowerCase() }}"
+            },
+            {
+              "fieldId": "customer_id",
+              "fieldValue": "={{ $fromAI('customer_id', 'ID o número de cliente/usuario registrado', 'string') }}"
+            },
+            {
+              "fieldId": "product_id",
+              "fieldValue": "={{ $fromAI('product_id', 'ID o código del producto involucrado, o 0 si no aplica', 'string', '0') }}"
+            },
+            {
+              "fieldId": "customer_email",
+              "fieldValue": "={{ $fromAI('customer_email', 'Correo electrónico obligatorio del cliente', 'string') }}"
+            },
+            {
+              "fieldId": "order_id",
+              "fieldValue": "={{ $fromAI('order_id', 'Número de pedido, o 0 si no aplica', 'number', 0) || null }}"
+            },
+            {
+              "fieldId": "conversation_summary",
+              "fieldValue": "={{ $fromAI('conversation_summary', 'Resumen breve de la conversación para el agente humano', 'string') }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabaseTool",
+      "typeVersion": 1,
+      "position": [
+        432,
+        368
+      ],
+      "id": "c9dee36e-e1d8-4efa-b9bc-754cb41aa49a",
+      "name": "Create a row in Supabase",
+      "credentials": {
+        "supabaseApi": {
+          "id": "1uzR77TVqdSrBzRe",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.7-flash",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        -304,
+        448
+      ],
+      "id": "2d921fd6-f838-420f-9c88-7a79de9733b4",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "43Kb7Cch1jq4dWBc",
+          "name": "Google Gemini(PaLM) Api account 2"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Embeddings Google Gemini": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Rag Politicas",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Rag Politicas": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent (Gemini)1",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "AI Agent (Gemini)1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent (Gemini)1": {
+      "main": [
+        [
+          {
+            "node": "Responder en Telegram1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Consultar_Estado_Pedido1": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent (Gemini)1",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent (Gemini)1",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create a row in Supabase": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent (Gemini)1",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent (Gemini)1",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "ed61a6adc7734e24fd8862d714000ef5e0fa7e973e212055a55f0f6c4d8c8921"
+  }
+}

@@ -1,0 +1,147 @@
+{
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "aaa9d141-25f3-4e59-a00a-25f368ddb577",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Texto fuente de las políticas (# = tema, ## = sección)\nconst text = `\n# Política de envíos - Zapatería Paso Firme\n\n## Tiempos y costos\nEnvío estándar: 3 a 5 días hábiles, costo de $99 MXN. Envío gratis en compras mayores a $999 MXN.\nEnvío express: 1 a 2 días hábiles, costo de $199 MXN.\nLos pedidos pagados antes de las 2:00 pm salen el mismo día hábil.\n\n## Rastreo\nCuando el pedido sale de bodega se asigna paquetería y número de guía. Con tu número de pedido y tu\ncorreo puedes consultar el estado. Un pedido en estado \"preparando\" todavía no tiene guía.\n\n## Pedido retrasado\nSi el pedido supera la fecha estimada por más de 3 días hábiles, abrimos una investigación con la\npaquetería. La resolución toma hasta 5 días hábiles.\n\n# Política de devoluciones y cambios - Zapatería Paso Firme\n\n## Plazo\nPuedes devolver o cambiar un producto dentro de los 30 días naturales posteriores a la entrega.\nPasado ese plazo no aceptamos devoluciones, salvo defecto de fabricación cubierto por garantía.\n\n## Condiciones del calzado\nEl calzado debe estar sin uso, con la suela sin desgaste, en su caja original y con etiquetas.\nProbarlo en interiores sobre superficie limpia es válido. No se aceptan devoluciones de plantillas,\ncalcetas ni kits de limpieza abiertos.\n\n## Cambio de talla\nPuedes cambiar por otra talla o color del mismo modelo, sujeto a disponibilidad. El primer cambio\nde talla no tiene costo de envío. Si la talla solicitada está agotada, se ofrece reembolso o\ncambio por otro modelo.\n\n## Producto dañado o incorrecto\nSi el producto llegó roto, dañado o no es el que pediste (modelo, talla o color), avísanos dentro\nde las 48 horas posteriores a la entrega con fotos del producto y de la caja. Enviamos uno nuevo\no reembolsamos el total, incluido el envío, sin costo de regreso.\n\n## Reembolsos\nEl reembolso se hace al mismo método de pago en 5 a 10 días hábiles después de recibir el producto.\nEl envío original no se reembolsa, excepto en productos dañados o incorrectos.\n\n# Política de garantía - Zapatería Paso Firme\n\n## Cobertura\nTodo el calzado tiene 60 días de garantía contra defectos de fabricación: suela despegada,\ncosturas abiertas o defectos en el material.\n\n## Qué no cubre\nDesgaste normal por uso, daños por mal uso, cortes, quemaduras, humedad excesiva, modificaciones\no falta de limpieza.\n\n## Cómo hacerla válida\nSe necesita número de pedido, descripción del defecto y fotos. Evaluamos el caso en 3 días hábiles\ny se resuelve con reparación, cambio o reembolso.\n\n# Guía de tallas - Zapatería Paso Firme\n\n## Cómo medir tu talla\nLas tallas son mexicanas y se miden en centímetros. Apoya el talón en una pared, mide hasta el dedo\nmás largo y elige la talla más cercana. Si estás entre dos tallas, elige la mayor.\n\n## Rangos disponibles\nAdulto hombre: 25 a 30. Dama: 22 a 25. Escolar: 18 a 24.\n\n# Contacto y atención - Zapatería Paso Firme\n\n## Atención a clientes\nAtendemos de lunes a sábado de 9:00 am a 7:00 pm. Fuera de ese horario el asistente puede\ncrear un ticket y un asesor responde el siguiente día hábil.\n`;\n\n// Divide en fragmentos: uno por cada \"##\", con el tema de su \"#\"\nconst lines = text.split('\\n');\nlet tema = '', seccion = '', buffer = [];\nconst out = [];\n\nconst flush = () => {\n  const body = buffer.join('\\n').trim();\n  if (body && seccion) {\n    out.push({ json: {\n      tema,\n      seccion,\n      // el encabezado dentro del contenido ayuda a que el fragmento se entienda solo\n      content: `${tema} - ${seccion}\\n${body}`\n    }});\n  }\n  buffer = [];\n};\n\nfor (const line of lines) {\n  if (line.startsWith('## '))      { flush(); seccion = line.slice(3).trim(); }\n  else if (line.startsWith('# '))  { flush(); tema = line.slice(2).trim(); seccion = ''; }\n  else buffer.push(line);\n}\nflush();\n\nreturn out;\n"
+      },
+      "id": "f6686a36-f470-4d6f-b91d-b45698841c26",
+      "name": "Políticas a fragmentos",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        224,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "insert",
+        "tableName": {
+          "__rl": true,
+          "value": "policy_documents",
+          "mode": "list",
+          "cachedResultName": "policy_documents"
+        },
+        "options": {
+          "queryName": "match_policy_documents"
+        }
+      },
+      "id": "cee56175-df8f-4eff-ae15-9b0342cf5b96",
+      "name": "Supabase Vector Store",
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreSupabase",
+      "typeVersion": 1.3,
+      "position": [
+        464,
+        0
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "78Fw3bqgIfx0Ao8B",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "id": "e05d7f07-be54-4fd4-99dc-0d207b97aa67",
+      "name": "Embeddings Google Gemini",
+      "type": "@n8n/n8n-nodes-langchain.embeddingsGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        400,
+        240
+      ],
+      "credentials": {}
+    },
+    {
+      "parameters": {
+        "jsonMode": "expressionData",
+        "jsonData": "={{ $json.content }}",
+        "options": {
+          "metadata": {
+            "metadataValues": [
+              {
+                "name": "tema",
+                "value": "={{ $json.tema }}"
+              },
+              {
+                "name": "seccion",
+                "value": "={{ $json.seccion }}"
+              }
+            ]
+          }
+        }
+      },
+      "id": "1b7f62c0-5936-48dc-9ff1-70973f16e4fe",
+      "name": "Default Data Loader",
+      "type": "@n8n/n8n-nodes-langchain.documentDefaultDataLoader",
+      "typeVersion": 1.1,
+      "position": [
+        624,
+        240
+      ]
+    }
+  ],
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Políticas a fragmentos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Políticas a fragmentos": {
+      "main": [
+        [
+          {
+            "node": "Supabase Vector Store",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings Google Gemini": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Supabase Vector Store",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Default Data Loader": {
+      "ai_document": [
+        [
+          {
+            "node": "Supabase Vector Store",
+            "type": "ai_document",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "70c1c53bd29fdc8a89f35d5e860d81d829787fa5defc429da0ca9f65eecfbb58"
+  }
+}
