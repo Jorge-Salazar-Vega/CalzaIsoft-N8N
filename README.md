@@ -120,7 +120,7 @@ La clave `service_role` se guarda solo en las credenciales de n8n. No va en cód
 
 ### 6.4 Cargar las políticas (vector store)
 
-1. Importa `workflows/01_carga_politicas.json` en n8n.
+1. Importa `workflows/Agente01.json` en n8n.
 2. En el nodo **Embeddings Google Gemini**, elige `models/gemini-embedding-2` y tu credencial de Gemini. Debe ser **el mismo modelo** que usa el agente para consultar.
 3. En **Supabase Vector Store**, selecciona tu credencial de Supabase, la tabla `policy_documents` y la función `match_policy_documents`.
 4. Pulsa *Execute workflow*.
